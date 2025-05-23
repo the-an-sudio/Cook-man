@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fridge Feast - Your Recipe Finder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Basic Reset & Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #F8FBF6;
+            --card-bg: #FFFFFF;
+            --accent-green: #6ABD4A;
+            --accent-green-darker: #5A9A42;
+            --text-primary: #333333;
+            --text-secondary: #555555;
+            --border-color: #e0e0e0;
+            --icon-color: var(--accent-green);
+            --error-color: #D8000C;
+            --error-bg: #FFD2D2;
+            --delete-color: #c0392b;
+            --delete-color-hover: #a03224;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* SPLASH SCREEN STYLES */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--primary-bg);
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            z-index: 9999; opacity: 1; visibility: visible;
+            transition: opacity 0.7s ease-out, visibility 0.7s ease-out;
+        }
+        #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .splash-logo-icon { font-size: 4em; color: var(--accent-green); margin-bottom: 20px; animation: pulseLogo 2s infinite ease-in-out; }
+        #splash-screen h1 { font-size: 2.2em; color: var(--text-primary); margin-bottom: 10px; font-weight: 700; }
+        #splash-screen .splash-subtitle { font-size: 1.1em; color: var(--text-secondary); }
+        @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* HEADER AND NAV STYLES FOR RESPONSIVENESS */
+        header {
+            background-color: #EAF7E5;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #D5E8D0;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .logo-icon {
+            font-size: 1.4em;
+            color: var(--accent-green);
+            margin-right: 6px;
+        }
+
+        header h1 {
+            font-size: 1.3em;
+            color: var(--text-primary);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            margin-left: 10px;
+            font-size: 0.85em;
+            padding: 5px 8px;
+            border-radius: 6px;
+            transition: background-color 0.3s, color 0.3s;
+            white-space: nowrap;
+        }
+         nav a:first-child {
+            margin-left: 0;
+        }
+
+        nav a i {
+            margin-right: 3px;
+        }
+
+        nav a:hover,
+        nav a.active {
+            color: var(--accent-green-darker);
+            background-color: #D5E8D0;
+        }
+        
+        @media (max-width: 370px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .logo-container {
+                margin-bottom: 8px;
+                margin-right: 0;
+            }
+            nav {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            nav a {
+                margin-left: 0;
+                margin-right: 10px;
+            }
+            nav a:last-child {
+                margin-right: 0;
+            }
+        }
+
+        main {
+            padding: 20px 15px; max-width: 800px; width: 100%;
+            margin: 0 auto; flex-grow: 1;
+        }
+        .content-section { margin-bottom: 25px; }
+        .card {
+            background-color: var(--card-bg); padding: 20px;
+            border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+            margin-bottom: 20px;
+        }
+        .card h2 { font-size: 1.6em; color: var(--text-primary); margin-bottom: 10px; font-weight: 600; }
+        .card p { color: var(--text-secondary); margin-bottom: 20px; }
+        #recipe-form label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
+        #recipe-form textarea {
+            width: 100%; padding: 12px; border: 1px solid var(--border-color);
+            border-radius: 8px; font-family: inherit; font-size: 1em;
+            margin-bottom: 20px; resize: vertical; min-height: 80px;
+        }
+        #recipe-form textarea:focus { outline: none; border-color: var(--accent-green); box-shadow: 0 0 0 2px rgba(106, 189, 74, 0.2); }
+        .btn-generate {
+            background-color: var(--accent-green); color: white; border: none;
+            padding: 12px 20px; border-radius: 8px; font-size: 1em;
+            font-weight: 600; cursor: pointer; transition: background-color 0.3s;
+            display: inline-flex; align-items: center; width: 100%; justify-content: center;
+        }
+        .btn-generate i { margin-left: 8px; }
+        .btn-generate:hover { background-color: var(--accent-green-darker); }
+        .section-title {
+            text-align: center; font-size: 1.8em; color: var(--accent-green);
+            margin-bottom: 20px; font-weight: 700;
+        }
+        .recipe-card .recipe-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .recipe-card h3 { font-size: 1.5em; color: var(--text-primary); margin-bottom: 5px; display: flex; align-items: center; }
+        .recipe-icon { color: var(--accent-green); margin-right: 10px; font-size: 1.2em; }
+        .tagline { font-style: italic; color: var(--text-secondary); font-size: 0.9em; margin-bottom: 0; }
+        
+        .btn-save-recipe, .btn-delete-favourite-recipe {
+            background: none; border: none; font-size: 1.5em;
+            cursor: pointer; padding: 5px; transition: color 0.3s;
+        }
+        .btn-save-recipe { color: var(--accent-green); }
+        .btn-save-recipe:hover { color: var(--accent-green-darker); }
+        .btn-delete-favourite-recipe { color: var(--delete-color); }
+        .btn-delete-favourite-recipe:hover { color: var(--delete-color-hover); }
+
+        .recipe-details { margin-bottom: 15px; }
+        .recipe-details p { color: var(--text-secondary); font-size: 0.9em; display: flex; align-items: center; margin-bottom: 5px; }
+        .icon-detail { color: var(--icon-color); margin-right: 8px; font-size: 1.1em; }
+        .recipe-card hr { border: 0; height: 1px; background-color: var(--border-color); margin: 15px 0; }
+        .recipe-content-section h4 { font-size: 1.2em; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; font-weight: 600; }
+        .icon-section { color: var(--icon-color); margin-right: 10px; font-size: 1.1em; }
+        .recipe-content-section p, .recipe-content-section ul, .recipe-content-section ol {
+            color: var(--text-secondary); margin-bottom: 0; font-size: 0.95em;
+        }
+        .recipe-content-section ul, .recipe-content-section ol { padding-left: 20px; }
+        .recipe-content-section ul li, .recipe-content-section ol li { margin-bottom: 6px; }
+        .recipe-card .error-icon { color: var(--error-color); }
+        .error-message-container {
+            color: var(--error-color); background-color: var(--error-bg);
+            border: 1px solid var(--error-color); padding: 10px; margin-top: 15px;
+            border-radius: 6px; text-align: center; font-size: 0.9em;
+        }
+        footer {
+            text-align: center; padding: 15px; background-color: #EAF7E5;
+            color: var(--text-secondary); font-size: 0.85em; border-top: 1px solid #D5E8D0;
+        }
+        #no-favourite-recipes-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="splash-screen">
+        <i class="fas fa-utensils splash-logo-icon"></i>
+        <h1>Fridge Feast</h1>
+        <p class="splash-subtitle">Loading your culinary experience...</p>
+    </div>
+
+    <header>
+        <div class="logo-container">
+            <i class="fas fa-utensils logo-icon"></i>
+            <h1>Fridge Feast</h1>
+        </div>
+        <nav>
+            <a href="#" id="nav-generator" class="active"><i class="fas fa-utensil-spoon"></i> Generator</a>
+            <a href="#" id="nav-favourites"><i class="fas fa-heart"></i> Favourites</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="input-section" class="content-section">
+            <div class="card">
+                <h2>What's in your kitchen?</h2>
+                <p>Enter ingredients you have, and we'll find a recipe!</p>
+                <form id="recipe-form">
+                    <label for="ingredients-input">Ingredients (comma separated)</label>
+                    <textarea id="ingredients-input" name="ingredients" rows="3" placeholder="e.g., tomato, onion, paneer"></textarea>
+                    <button type="submit" class="btn-generate" id="generate-btn">
+                        Find Recipe <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section id="output-section" class="content-section" style="display: none;">
+            <h2 class="section-title" id="output-title">Your Recipe</h2>
+            <div class="card recipe-card">
+                <div class="recipe-header">
+                    <div>
+                        <h3><i id="recipe-title-icon" class="fas fa-concierge-bell recipe-icon"></i> <span id="recipe-title">Recipe Title</span></h3>
+                        <p class="tagline" id="recipe-tagline">Details below!</p>
+                    </div>
+                    <button class="btn-save-recipe" id="btn-save-recipe" title="Save to Favourites" style="display: none;">
+                        <i class="far fa-bookmark"></i>
+                    </button>
+                </div>
+
+                <div class="recipe-details">
+                    <p><i class="far fa-clock icon-detail"></i> Prep Time: <span id="recipe-prep-time">N/A</span></p>
+                </div>
+                <hr>
+                <div class="recipe-content-section">
+                    <h4><i class="fas fa-list-check icon-section"></i> Ingredients Needed</h4>
+                    <ul id="recipe-ingredients"><li>Loading...</li></ul>
+                </div>
+                <hr>
+                <div class="recipe-content-section">
+                    <h4><i class="fas fa-kitchen-set icon-section"></i> Instructions</h4>
+                    <ol id="recipe-instructions"><li>Loading...</li></ol>
+                </div>
+                <div id="error-message-container" class="error-message-container" style="display: none;"></div>
+            </div>
+        </section>
+
+        <section id="favourite-recipes-section" class="content-section" style="display: none;">
+            <h2 class="section-title">Your Favourite Recipes</h2>
+            <div id="favourite-recipes-container">
+                <!-- Favourite recipe cards will be dynamically added here -->
+            </div>
+            <p id="no-favourite-recipes-message" style="display: none;">You have no favourite recipes yet.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>© Fridge Feast. Happy Cooking!</p>
+    </footer>
+
+    <script>
+        // --- DOM Elements ---
+        const splashScreen = document.getElementById('splash-screen');
+        const recipeForm = document.getElementById('recipe-form');
+        const ingredientsInput = document.getElementById('ingredients-input');
+        const generateBtn = document.getElementById('generate-btn');
+
+        const inputSection = document.getElementById('input-section');
+        const outputSection = document.getElementById('output-section');
+        const outputTitleElement = document.getElementById('output-title');
+        const recipeTitleIconElement = document.getElementById('recipe-title-icon');
+        const recipeTitleElement = document.getElementById('recipe-title');
+        const recipeTaglineElement = document.getElementById('recipe-tagline');
+        const recipePrepTimeElement = document.getElementById('recipe-prep-time');
+        const recipeIngredientsULElement = document.getElementById('recipe-ingredients');
+        const recipeInstructionsOLElement = document.getElementById('recipe-instructions');
+        const errorMessageContainer = document.getElementById('error-message-container');
+        const saveRecipeBtn = document.getElementById('btn-save-recipe');
+
+        const navGenerator = document.getElementById('nav-generator');
+        const navFavourites = document.getElementById('nav-favourites');
+        const favouriteRecipesSection = document.getElementById('favourite-recipes-section');
+        const favouriteRecipesContainer = document.getElementById('favourite-recipes-container');
+        const noFavouriteRecipesMsg = document.getElementById('no-favourite-recipes-message');
+
+        // --- State Variables ---
+        let currentGeneratedRecipe = null;
+        const CLOUD_FUNCTION_URL = null; // Replace with your actual Cloud Function URL
+        const FAVOURITE_RECIPES_LS_KEY = 'fridgeFeastFavouriteRecipes';
+        let hasUserInteracted = false; 
+
+        // --- Basic Non-Food Keywords (Illustrative & Expanded) ---
+        const NON_FOOD_KEYWORDS = [
+            'stone', 'stones',
+            'plastic', 'plastics',
+            'metal', 'metals',
+            'wood', 'woods',
+            'toy', 'toys',
+            'car', 'cars',
+            'phone', 'phones',
+            'computer', 'computers',
+            'brick', 'bricks',
+            'dirt',
+            'soap', 'soaps',
+            'glass', // 'glasses' could be drinking glasses, so be specific or handle context
+            'paper', 'papers',
+            'cloth', // 'clothes' could be ambiguous (e.g. cheesecloth is food related)
+            'pen', 'pens',
+            'book', 'books',
+            'rock', 'rocks',
+            'nail', 'nails',
+            'screw', 'screws',
+            'battery', 'batteries',
+            'key', 'keys',
+            'coin', 'coins',
+            'button', 'buttons',
+            'string', 'strings', // 'string beans' is food, so this is a simple example
+            'television', 'tv',
+            'remote', 'remotes',
+            'charger', 'chargers',
+            'bag', 'bags', // 'tea bag' is food related
+            'box', 'boxes', // 'box of cereal'
+            'sock', 'socks',
+            'shoe', 'shoes',
+            'table', 'chair', 'lamp', 'cupboard', 'pencil', 'eraser', 'stapler',
+            'keyboard', 'mouse', 'monitor', 'screen', 'door', 'window', 'wall',
+            'floor', 'ceiling', 'roof', 'road', 'pavement', 'sidewalk', 'building',
+            'person', 'man', 'woman', 'child', 'baby', 'animal', 'dog', 'cat', 'bird'
+            // This list is illustrative; a truly robust solution might need a more sophisticated approach
+            // or a much larger, curated list, potentially with context awareness.
+        ];
+
+        // --- Splash Screen Logic ---
+        document.addEventListener('DOMContentLoaded', function() {
+            if (splashScreen) {
+                setTimeout(() => {
+                    splashScreen.classList.add('hidden');
+                }, 2500);
+            }
+            showGeneratorView();
+            
+            document.body.addEventListener('input', recordUserInteraction, true);
+            document.body.addEventListener('click', recordUserInteraction, true);
+        });
+
+        // --- Navigation Logic ---
+        function showGeneratorView() {
+            inputSection.style.display = 'block';
+            // outputSection.style.display = 'none'; // Keep output visible if a recipe was generated
+            favouriteRecipesSection.style.display = 'none';
+            navGenerator.classList.add('active');
+            navFavourites.classList.remove('active');
+        }
+
+        function showFavouriteRecipesView() {
+            inputSection.style.display = 'none';
+            outputSection.style.display = 'none';
+            favouriteRecipesSection.style.display = 'block';
+            navGenerator.classList.remove('active');
+            navFavourites.classList.add('active');
+            renderFavouriteRecipes();
+        }
+
+        navGenerator.addEventListener('click', (e) => {
+            e.preventDefault();
+            recordUserInteraction();
+            showGeneratorView();
+        });
+
+        navFavourites.addEventListener('click', (e) => {
+            e.preventDefault();
+            recordUserInteraction();
+            showFavouriteRecipesView();
+        });
+
+        // --- LocalStorage Favourite Recipes Logic ---
+        function getFavouriteRecipesFromLS() {
+            return JSON.parse(localStorage.getItem(FAVOURITE_RECIPES_LS_KEY)) || [];
+        }
+
+        function saveFavouriteRecipesToLS(recipes) {
+            localStorage.setItem(FAVOURITE_RECIPES_LS_KEY, JSON.stringify(recipes));
+        }
+
+        function isRecipeFavourite(recipeId) {
+            const favouriteRecipes = getFavouriteRecipesFromLS();
+            return favouriteRecipes.some(r => r.id === recipeId);
+        }
+
+        function updateSaveButtonIcon() {
+            if (!currentGeneratedRecipe || !currentGeneratedRecipe.id) {
+                saveRecipeBtn.style.display = 'none';
+                return;
+            }
+            saveRecipeBtn.style.display = 'inline-block';
+            const icon = saveRecipeBtn.querySelector('i');
+            if (isRecipeFavourite(currentGeneratedRecipe.id)) {
+                icon.classList.remove('far'); icon.classList.add('fas');
+                saveRecipeBtn.title = "Remove from Favourites";
+            } else {
+                icon.classList.remove('fas'); icon.classList.add('far');
+                saveRecipeBtn.title = "Save to Favourites";
+            }
+        }
+
+        saveRecipeBtn.addEventListener('click', () => {
+            recordUserInteraction();
+            if (!currentGeneratedRecipe || !currentGeneratedRecipe.id) return;
+            let favouriteRecipes = getFavouriteRecipesFromLS();
+            if (isRecipeFavourite(currentGeneratedRecipe.id)) {
+                favouriteRecipes = favouriteRecipes.filter(r => r.id !== currentGeneratedRecipe.id);
+            } else {
+                favouriteRecipes.push(currentGeneratedRecipe);
+            }
+            saveFavouriteRecipesToLS(favouriteRecipes);
+            updateSaveButtonIcon();
+            if (favouriteRecipesSection.style.display === 'block') renderFavouriteRecipes();
+        });
+        
+        function createRecipeCardHTML(recipe, isFavouriteCard = false) {
+            const ingredientsHTML = recipe.ingredients && Array.isArray(recipe.ingredients)
+                ? recipe.ingredients.map(item => `<li>${item}</li>`).join('') : '<li>Ingredients not specified.</li>';
+            const instructionsHTML = recipe.instructions && Array.isArray(recipe.instructions)
+                ? recipe.instructions.map(step => `<li>${step}</li>`).join('') : '<li>Instructions not specified.</li>';
+            const deleteButtonHTML = isFavouriteCard 
+                ? `<button class="btn-delete-favourite-recipe" data-id="${recipe.id}" title="Remove from Favourites"><i class="fas fa-trash-alt"></i></button>` : '';
+            return `
+                <div class="card recipe-card" data-id="${recipe.id}">
+                    <div class="recipe-header">
+                        <div>
+                            <h3><i class="fas fa-utensils recipe-icon"></i> <span>${recipe.title || 'Recipe Title'}</span></h3>
+                            <p class="tagline">${recipe.tagline || 'Details below!'}</p>
+                        </div>
+                        ${deleteButtonHTML}
+                    </div>
+                    <div class="recipe-details">
+                        <p><i class="far fa-clock icon-detail"></i> Prep Time: <span>${recipe.prepTime || 'N/A'}</span></p>
+                    </div> <hr>
+                    <div class="recipe-content-section">
+                        <h4><i class="fas fa-list-check icon-section"></i> Ingredients Needed</h4> <ul>${ingredientsHTML}</ul>
+                    </div> <hr>
+                    <div class="recipe-content-section">
+                        <h4><i class="fas fa-kitchen-set icon-section"></i> Instructions</h4> <ol>${instructionsHTML}</ol>
+                    </div>
+                </div>`;
+        }
+
+        function renderFavouriteRecipes() {
+            const favouriteRecipes = getFavouriteRecipesFromLS();
+            favouriteRecipesContainer.innerHTML = '';
+            if (favouriteRecipes.length === 0) {
+                noFavouriteRecipesMsg.style.display = 'block';
+            } else {
+                noFavouriteRecipesMsg.style.display = 'none';
+                favouriteRecipes.forEach(recipe => {
+                    const cardHTML = createRecipeCardHTML(recipe, true);
+                    favouriteRecipesContainer.insertAdjacentHTML('beforeend', cardHTML);
+                });
+            }
+        }
+        
+        favouriteRecipesContainer.addEventListener('click', function(event) {
+            recordUserInteraction();
+            const deleteButton = event.target.closest('.btn-delete-favourite-recipe');
+            if (deleteButton) {
+                const recipeIdToDelete = deleteButton.dataset.id;
+                if (recipeIdToDelete && confirm("Are you sure you want to remove this recipe from favourites?")) {
+                    let favouriteRecipes = getFavouriteRecipesFromLS();
+                    favouriteRecipes = favouriteRecipes.filter(r => r.id !== recipeIdToDelete);
+                    saveFavouriteRecipesToLS(favouriteRecipes);
+                    renderFavouriteRecipes();
+                    if (currentGeneratedRecipe && currentGeneratedRecipe.id === recipeIdToDelete) updateSaveButtonIcon();
+                }
+            }
+        });
+
+        // --- Recipe Generation Logic ---
+        recipeForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            recordUserInteraction();
+            const ingredients = ingredientsInput.value.trim();
+
+            // --- Food Item Validation (Start) ---
+            if (!ingredients) {
+                alert("Please enter some ingredients!");
+                return; 
+            }
+
+            const ingredientItems = ingredients.toLowerCase().split(',')
+                                        .map(item => item.trim())
+                                        .filter(item => item.length > 0);
+
+            if (ingredientItems.length === 0) {
+                 alert("Please enter valid ingredient names (e.g., tomato, onion).");
+                 return;
+            }
+
+            let containsNonFood = false;
+            let nonFoodItemFound = '';
+            for (const item of ingredientItems) {
+                // Check if item is purely a number (e.g., "123")
+                if (/^\d+$/.test(item)) { 
+                    containsNonFood = true;
+                    nonFoodItemFound = item;
+                    break;
+                }
+                // Check if item is an exact match to a non-food keyword
+                if (NON_FOOD_KEYWORDS.includes(item)) { 
+                    containsNonFood = true;
+                    nonFoodItemFound = item;
+                    break;
+                }
+            }
+
+            if (containsNonFood) {
+                const displayItem = nonFoodItemFound.charAt(0).toUpperCase() + nonFoodItemFound.slice(1);
+                alert(`"${displayItem}" doesn't seem like an eatable item. Please enter food items only. Avoid using only numbers or non-food words as ingredients.`);
+                return; // Stop further processing
+            }
+            // --- Food Item Validation (End) ---
+
+
+            // 1. Show Loading State & Disable Button (Only if validation passed)
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = 'Finding... <i class="fas fa-spinner fa-spin"></i>';
+            outputSection.style.display = 'block';
+            errorMessageContainer.style.display = 'none';
+            outputTitleElement.textContent = 'Searching for your Recipe...';
+            recipeTitleIconElement.className = 'fas fa-spinner fa-spin recipe-icon';
+            recipeTitleElement.textContent = 'Please wait';
+            recipeTaglineElement.textContent = 'Cooking up something good!';
+            recipePrepTimeElement.textContent = '...';
+            recipeIngredientsULElement.innerHTML = '<li>Gathering ingredients...</li>';
+            recipeInstructionsOLElement.innerHTML = '<li>Preparing steps...</li>';
+            saveRecipeBtn.style.display = 'none';
+            currentGeneratedRecipe = null;
+
+            outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            if (!CLOUD_FUNCTION_URL) {
+                console.warn("CLOUD_FUNCTION_URL is not set. Displaying mock data.");
+                setTimeout(() => {
+                    try {
+                        const mockRecipe = {
+                            id: "mock-paneer-butter-masala-" + Date.now(),
+                            title: "Mock Paneer Butter Masala",
+                            tagline: "A creamy and delicious treat!",
+                            prepTime: "45 minutes",
+                            ingredients: ["200g Paneer, cubed", "2 Onions, chopped", "3 Tomatoes, pureed", "1 tbsp Ginger-garlic paste", "50g Cashews, soaked", "Spices (Turmeric, Chili, Garam Masala)", "Fresh cream"],
+                            instructions: ["Sauté onions, then add ginger-garlic paste.", "Add tomato puree and cashew paste. Cook well.", "Add spices and cook until oil separates.", "Add paneer and water. Simmer.", "Finish with cream and garam masala."]
+                        };
+                        currentGeneratedRecipe = mockRecipe;
+                        displayRecipeData(mockRecipe);
+                        outputTitleElement.textContent = 'Your Mock Recipe';
+                        updateSaveButtonIcon();
+                    } catch (e) {
+                        console.error("Error displaying mock recipe:", e);
+                        displayError("An error occurred while preparing the mock recipe. " + e.message);
+                    } finally {
+                        generateBtn.disabled = false;
+                        generateBtn.innerHTML = 'Find Recipe <i class="fas fa-search"></i>';
+                    }
+                }, 1500);
+                return; 
+            }
+
+            try {
+                const response = await fetch(CLOUD_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ingredients: ingredients })
+                });
+                if (!response.ok) {
+                    let errorData = { message: `Server error. Status: ${response.status}` };
+                    try { errorData = await response.json(); } catch (e) { /* Ignore if error response is not JSON */ }
+                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                }
+                const recipeData = await response.json();
+                if (recipeData && recipeData.title) { 
+                    currentGeneratedRecipe = { id: recipeData.id || recipeData.title.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(), ...recipeData };
+                    displayRecipeData(currentGeneratedRecipe);
+                    outputTitleElement.textContent = 'Your Generated Recipe';
+                    updateSaveButtonIcon();
+                } else {
+                    throw new Error(recipeData.message || "No matching recipe found for your ingredients.");
+                }
+            } catch (error) {
+                console.error('Error fetching recipe:', error);
+                displayError(error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = 'Find Recipe <i class="fas fa-search"></i>';
+            }
+        });
+
+        function displayRecipeData(recipe) {
+            recipeTitleIconElement.className = 'fas fa-utensils recipe-icon';
+            recipeTitleElement.textContent = recipe.title || "Untitled Recipe";
+            recipeTaglineElement.textContent = recipe.tagline || "Enjoy your meal!";
+            recipePrepTimeElement.textContent = recipe.prepTime || "N/A";
+            
+            recipeIngredientsULElement.innerHTML = ''; 
+            if (recipe.ingredients && Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach(item => { 
+                    const li = document.createElement('li'); 
+                    li.textContent = item; 
+                    recipeIngredientsULElement.appendChild(li); 
+                });
+            } else { 
+                recipeIngredientsULElement.innerHTML = '<li>Ingredients not specified.</li>'; 
+            }
+            
+            recipeInstructionsOLElement.innerHTML = ''; 
+            if (recipe.instructions && Array.isArray(recipe.instructions) && recipe.instructions.length > 0) {
+                recipe.instructions.forEach(step => { 
+                    const li = document.createElement('li'); 
+                    li.textContent = step; 
+                    recipeInstructionsOLElement.appendChild(li); 
+                });
+            } else { 
+                recipeInstructionsOLElement.innerHTML = '<li>Instructions not specified.</li>'; 
+            }
+            errorMessageContainer.style.display = 'none'; 
+        }
+
+        function displayError(message) {
+            recipeTitleIconElement.className = 'fas fa-exclamation-circle recipe-icon error-icon';
+            outputTitleElement.textContent = 'Oops! Something Went Wrong';
+            recipeTitleElement.textContent = 'Recipe Not Found';
+            recipeTaglineElement.textContent = 'We couldn\'t find or generate a recipe.';
+            recipePrepTimeElement.textContent = '-';
+            recipeIngredientsULElement.innerHTML = '<li>-</li>';
+            recipeInstructionsOLElement.innerHTML = '<li>-</li>';
+            
+            errorMessageContainer.textContent = message || "An unknown error occurred.";
+            errorMessageContainer.style.display = 'block';
+            saveRecipeBtn.style.display = 'none';
+            currentGeneratedRecipe = null; 
+        }
+
+        function recordUserInteraction() {
+            if (!hasUserInteracted) {
+                hasUserInteracted = true;
+            }
+        }
+
+        window.addEventListener('beforeunload', function (e) {
+            if (hasUserInteracted) { 
+                const confirmationMessage = 'Are you sure you want to leave? Changes you made may not be saved.';
+                e.preventDefault(); 
+                e.returnValue = confirmationMessage; 
+                return confirmationMessage;        
+            }
+        });
+    </script>
+</body>
+</html>
